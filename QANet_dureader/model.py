@@ -509,6 +509,7 @@ class Model(object):
                         pred_answers.append(sample)
                     else:
                         pred_answers.append({'question_id': sample['question_id'],
+                                             'question': sample['question'],
                                              'question_type': sample['question_type'],
                                              'answers': [best_answer],
                                              'entity_answers': [[]],
@@ -531,6 +532,8 @@ class Model(object):
                     fout.write(json.dumps(pred_answer, ensure_ascii=False) + '\n')
 
             self.logger.info('Saving {} results to {}'.format(result_prefix, result_file))
+            if result_prefix == 'test.predicted':
+                print(pred_answers)
 
         # this average loss is invalid on test set, since we don't have true start_id and end_id
         ave_loss = 1.0 * total_loss / total_num

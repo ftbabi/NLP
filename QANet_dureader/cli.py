@@ -276,6 +276,8 @@ def run():
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
 
+    # args.train = True
+    # args.evaluate = True
     args.predict = True
 
     if args.prepro:

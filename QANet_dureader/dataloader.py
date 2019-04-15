@@ -60,7 +60,9 @@ class DataLoader(object):
             data_set = []
             for lidx, line in enumerate(fin):
                 sample = json.loads(line.strip())
-                #print(sample)
+                # print(sample.keys())
+                # for i in sample.keys():
+                #     print(sample[i])
                 if train:
                     if len(sample['answer_spans']) == 0:
                         continue
@@ -140,7 +142,7 @@ class DataLoader(object):
                       'passage_char_ids': [],
                       'start_id': [],
                       'end_id': []}
-        max_passage_num = max([len(sample['passages']) for sample in batch_data['raw_data']])
+        max_passage_num = max([len(sample['passages']) for sample in batch_data['raw_data']]) # Debug
         max_passage_num = min(self.max_p_num, max_passage_num)
         for sidx, sample in enumerate(batch_data['raw_data']):
             for pidx in range(max_passage_num):
@@ -161,7 +163,7 @@ class DataLoader(object):
                     batch_data['passage_length'].append(0)
                     batch_data['passage_char_ids'].append([[]])
 
-        batch_data, padded_p_len, padded_q_len = self._dynamic_padding(batch_data, pad_id, pad_char_id)
+        batch_data, padded_p_len, padded_q_len = self._dynamic_padding(batch_data, pad_id, pad_char_id) # Debug
         for sample in batch_data['raw_data']:
             if 'answer_passages' in sample and len(sample['answer_passages']):
                 gold_passage_offset = padded_p_len * sample['answer_passages'][0]
@@ -271,7 +273,7 @@ class DataLoader(object):
             data = self.test_set
         else:
             raise NotImplementedError('No data set named as {}'.format(set_name))
-        data_size = len(data)
+        data_size = len(data) # Debug
         indices = np.arange(data_size)
         if shuffle:
             np.random.shuffle(indices)
