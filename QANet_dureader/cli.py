@@ -30,6 +30,8 @@ def parse_args():
                         help='evaluate the model on dev set')
     parser.add_argument('--predict', action='store_true',
                         help='predict the answers for test set with trained model')
+    parser.add_argument('--online', action='store_true',
+                        help='Use for online')
     parser.add_argument('--gpu', type=str, default='0',
                         help='specify gpu device')
 
@@ -85,7 +87,7 @@ def parse_args():
 
     path_settings = parser.add_argument_group('path settings')
     path_settings.add_argument('--train_files', nargs='+',
-                               default=['./data/corpus/train.json'],
+                               default=['./data/preprocessed/trainset/search.train.json', './data/corpus/train.json'],
                                help='list of files that contain the preprocessed train data')
     path_settings.add_argument('--dev_files', nargs='+',
                                default=['./data/corpus/dev.json'],
@@ -278,7 +280,11 @@ def run():
 
     # args.train = True
     # args.evaluate = True
-    args.predict = True
+    # args.predict = True
+    # args.test_files[0] = './data/nju/test.json'
+    # args.test_files[0] = './data/nju/test_word_level.json'
+
+    args.online = True
 
     if args.prepro:
         prepro(args)
@@ -288,6 +294,59 @@ def run():
         evaluate(args)
     if args.predict:
         predict(args)
+    if args.online:
+        online_predict(args)
+
+def online_predict(args):
+    print("Init...")
+    logger = logging.getLogger("QANet")
+
+    logger.info('Load data_set and vocab...')
+    with open(os.path.join(args.vocab_dir, 'vocab.data'), 'rb') as fin:
+        vocab = pickle.load(fin)
+
+    assert len(args.test_files) > 0, 'No test files are provided.'
+    dataloader = DataLoader(args.max_p_num, args.max_p_len, args.max_q_len, args.max_ch_len)
+
+
+    logger.info('Restoring the model...')
+    model = Model(vocab, args)
+    model.restore(args.model_dir, args.algo)
+
+    while True:
+        ques = getQuestion()
+        if 'q' in ques or 'Q' in ques:
+            break
+        print("您输入的问题是：", ques)
+        para = getParagraph(ques)
+        para = ["你是谁，你好啊，我很好，你是谁"] # Debug
+        dataloader.gen_ol_data(ques, paras=para, batch_size=args.batch_size, max_p_num=args.max_p_num)
+
+        logger.info('Converting text into ids...')
+        dataloader.convert_to_ids(vocab)
+        logger.info('Predicting answers for test set...')
+        test_batches = dataloader.next_batch('test', args.batch_size, vocab.get_word_id(vocab.pad_token),
+                                             vocab.get_char_id(vocab.pad_token), shuffle=False)
+        model.evaluate(test_batches,
+                       result_dir=None, result_prefix='test.predicted')
+
+    print("谢谢使用！")
+
+def getQuestion():
+    ques = input("请输入问题：")
+    return ques
+
+def getParagraph(ques):
+    """
+    根据问题查找段落
+
+    :param ques: 输入问题
+    :return:    返回一个段落，以list形式返回，只有一个元素
+    """
+    # TODO
+
+    return [ques]
+
 
 if __name__ == '__main__':
     run()

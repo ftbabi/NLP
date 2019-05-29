@@ -5,6 +5,7 @@ import os
 import time
 import logging
 import json
+import traceback
 import numpy as np
 
 import tensorflow as tf
@@ -521,10 +522,13 @@ class Model(object):
                                             'entity_answers': [[]],
                                             'yesno_answers': []})
 
-            except:
+            except Exception as e:
+                # print(str(e))
+                traceback.print_exc()
                 continue
             print("Batch time: ", time.time()-start_batches_time)
 
+        print("Predict answers: ", pred_answers)
         if result_dir is not None and result_prefix is not None:
             result_file = os.path.join(result_dir, result_prefix + '.json')
             with open(result_file, 'w', encoding='utf-8') as fout:

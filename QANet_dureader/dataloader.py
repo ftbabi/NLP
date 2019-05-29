@@ -281,3 +281,54 @@ class DataLoader(object):
             batch_indices = indices[batch_start: batch_start + batch_size]
             yield self._one_mini_batch(data, batch_indices, pad_id, pad_char_id)
 
+    def gen_ol_data(self, ques, ques_type='ENTITY', fact_or_opinion='FACT', ques_id=0, paras=[], batch_size=1, max_p_num=5):
+        sample = {}
+        sample['question'] = ques
+        sample['question_type'] = ques_type
+        sample['fact_or_opinion'] = fact_or_opinion
+        sample['question_id'] = ques_id
+        sample['segmented_question'] = list(jieba.cut(sample['question']))
+        sample['documents'] = []
+        sample['passages'] = []
+        for i in range(max_p_num):
+            doc = {}
+            if not isinstance(paras, list):
+                print("Paragraphs need list")
+                # raise
+                exit(-1)
+            doc['segmented_paragraphs'] = []
+            for para in paras:
+                doc['segmented_paragraphs'].append(list(jieba.cut(para)))
+            doc['paragraphs'] = paras.copy()
+            sample['documents'].append(doc)
+
+            para_infos = []
+            for para_tokens in doc['segmented_paragraphs']:
+                para_tokens = word_tokenize(para_tokens)
+                question_tokens = word_tokenize(sample['segmented_question'])
+
+                common_with_question = Counter(para_tokens) & Counter(question_tokens)
+                correct_preds = sum(common_with_question.values())
+                if correct_preds == 0:
+                    recall_wrt_question = 0
+                else:
+                    recall_wrt_question = float(correct_preds) / len(question_tokens)
+                para_infos.append((para_tokens, recall_wrt_question, len(para_tokens)))
+            para_infos.sort(key=lambda x: (-x[1], x[2]))
+            fake_passage_tokens = []
+            for para_info in para_infos[:1]:
+                fake_passage_tokens += para_info[0]
+
+            sample['passages'].append({'passage_tokens': fake_passage_tokens,
+                                       'passage_chars': [list(token) for token in fake_passage_tokens]})
+
+        question_tokens = word_tokenize(sample['segmented_question'])
+        sample['question_tokens'] = question_tokens
+        question_chars = [list(token) for token in question_tokens]
+        sample['question_chars'] = question_chars
+
+        self.test_set = []
+        for i in range(batch_size):
+            self.test_set.append(sample)
+        # self.test_set = sample
+        return sample
